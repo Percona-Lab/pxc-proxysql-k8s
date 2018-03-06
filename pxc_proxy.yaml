@@ -1,0 +1,147 @@
+apiVersion: v1
+kind: Service
+metadata:
+  annotations:
+    service.alpha.kubernetes.io/tolerate-unready-endpoints: "true"
+  name: pxc
+  labels:
+    app: mysql
+spec:
+  ports:
+  - port: 3306
+    name: mysql
+  clusterIP: None
+  selector:
+    app: mysql
+---
+apiVersion: apps/v1beta1
+kind: StatefulSet
+metadata:
+  name: mysql
+spec:
+  serviceName: "pxc"
+  replicas: 3
+  template:
+    metadata:
+      labels:
+        app: mysql
+      annotations:
+        pod.alpha.kubernetes.io/initialized: "true"
+    spec:
+      containers:
+      - name: mysql
+        image: perconalab/pxc-k8s:latest
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 3306
+          name: mysql
+        - containerPort: 4444
+          name: sst
+        - containerPort: 4567
+          name: replication
+        - containerPort: 4568
+          name: ist
+        readinessProbe:
+          exec:
+            command:
+            - /usr/bin/clustercheck.sh
+          initialDelaySeconds: 15
+          timeoutSeconds: 15
+          periodSeconds: 15
+          failureThreshold: 5
+        volumeMounts:
+        - name: datadir
+          mountPath: /var/lib/mysql
+          subPath: data
+        env:
+          - name: MYSQL_ROOT_PASSWORD
+            value: "root_password"
+          - name: XTRABACKUP_PASSWORD
+            value: "backup_password"
+          - name: POD_NAMESPACE
+            valueFrom:
+              fieldRef:
+                apiVersion: v1
+                fieldPath: metadata.namespace
+  volumeClaimTemplates:
+  - metadata:
+      name: datadir
+    spec:
+      accessModes: [ "ReadWriteOnce" ]
+      resources:
+        requests:
+          storage: 5Gi
+---
+apiVersion: apps/v1beta1
+kind: StatefulSet
+metadata:
+  name: proxysql
+  app: proxysql-app
+spec:
+  replicas: 1
+  selector:
+  front: proxysql
+  template:
+    metadata:
+      name: proxysql
+      labels:
+        app: proxysql
+        front: proxysql
+    spec:
+      containers:
+      - name: proxysql
+        image: perconalab/proxysql-k8s:latest
+        ports:
+        - containerPort: 3306
+          name: mysql
+        - containerPort: 6032
+          name: proxyadm
+        volumeMounts:
+        - name: proxydata
+          mountPath: /var/lib/proxysql
+          subPath: data
+        env:
+        - name: CLUSTER_NAME
+          valueFrom:
+               fieldRef:
+                  apiVersion: v1
+                  fieldPath: metadata.namespace
+        - name: MYSQL_ROOT_PASSWORD
+          value: "root_password"
+        - name: MYSQL_PROXY_USER
+          value: "proxyuser"
+        - name: MYSQL_PROXY_PASSWORD
+          value: "s3cret"
+        - name: PEERS
+          value: mysql-0.pxc,mysql-1.pxc,mysql-2.pxc
+        lifecycle:
+          postStart:
+            exec:
+              command: ["add_cluster_nodes.sh"]
+  volumeClaimTemplates:
+  - metadata:
+      name: proxydata
+    spec:
+      accessModes: [ "ReadWriteOnce" ]
+      resources:
+        requests:
+          storage: 2Gi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app: proxysql
+  name: sql
+spec:
+  ports:
+    - name: mysql
+      port: 3306
+      protocol: TCP
+      targetPort: 3306
+    - name: proxyadm
+      port: 6032
+      protocol: TCP
+      targetPort: 6032
+  selector:
+    front: proxysql
