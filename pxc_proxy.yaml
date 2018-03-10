@@ -55,9 +55,25 @@ spec:
           subPath: data
         env:
           - name: MYSQL_ROOT_PASSWORD
-            value: "root_password"
+            valueFrom:
+              secretKeyRef:
+                name: mysql-passwords
+                key: root
           - name: XTRABACKUP_PASSWORD
-            value: "backup_password"
+            valueFrom:
+              secretKeyRef:
+                name: mysql-passwords
+                key: xtrabackup
+          - name: MONITOR_PASSWORD
+            valueFrom:
+              secretKeyRef:
+                name: mysql-passwords
+                key: monitor
+          - name: CLUSTERCHECK_PASSWORD
+            valueFrom:
+              secretKeyRef:
+                name: mysql-passwords
+                key: clustercheck
           - name: POD_NAMESPACE
             valueFrom:
               fieldRef:
@@ -107,17 +123,23 @@ spec:
                   apiVersion: v1
                   fieldPath: metadata.namespace
         - name: MYSQL_ROOT_PASSWORD
-          value: "root_password"
+          valueFrom:
+              secretKeyRef:
+                name: mysql-passwords
+                key: root
         - name: MYSQL_PROXY_USER
           value: "proxyuser"
         - name: MYSQL_PROXY_PASSWORD
-          value: "s3cret"
+          valueFrom:
+              secretKeyRef:
+                name: mysql-passwords
+                key: proxyuser
         - name: PEERS
           value: mysql-0.pxc,mysql-1.pxc,mysql-2.pxc
         lifecycle:
           postStart:
             exec:
-              command: ["add_cluster_nodes.sh"]
+              command: ["/usr/bin/add_cluster_nodes.sh"]
   volumeClaimTemplates:
   - metadata:
       name: proxydata
