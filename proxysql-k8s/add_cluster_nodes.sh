@@ -76,7 +76,7 @@ scheduler_sql="
 UPDATE global_variables SET variable_value='$MYSQL_PROXY_USER' WHERE variable_name='mysql-monitor_username'; 
 UPDATE global_variables SET variable_value='$MYSQL_PROXY_PASSWORD' WHERE variable_name='mysql-monitor_password';
 LOAD MYSQL VARIABLES TO RUNTIME;SAVE MYSQL VARIABLES TO DISK;
-REPLACE INTO scheduler(id,active,interval_ms,filename,arg1,arg2,arg3,arg4,arg5) VALUES (1,'1','10000','/usr/bin/proxysql_galera_checker','0','-1','0','1', '/var/lib/proxysql/proxysql_galera_checker.log'); 
+REPLACE INTO scheduler(id,active,interval_ms,filename,arg1,arg2,arg3,arg4,arg5) VALUES (1,'1','3000','/usr/bin/proxysql_galera_checker','10','11','1','1', '/var/lib/proxysql/proxysql_galera_checker.log'); 
 LOAD SCHEDULER TO RUNTIME; SAVE SCHEDULER TO DISK;
 "
 
