@@ -8,6 +8,7 @@ if [ "${1:0:1}" = '-' ]; then
 	CMDARG="$@"
 fi
 
+
 if [ -z "$POD_NAMESPACE" ]; then
 	echo >&2 'Error:  You need to specify POD_NAMESPACE'
 	exit 1
@@ -21,9 +22,6 @@ else
 fi
 	# Get config
 	DATADIR="$("mysqld" --verbose --wsrep_provider= --help 2>/dev/null | awk '$1 == "datadir" { print $2; exit }')"
-	if [ -z "$WSREP_CLUSTER_ADDRESS" ]; then
-		DATADIR="/var/lib/mysql"
-	fi
 
 	# if we have CLUSTER_JOIN - then we do not need to perform datadir initialize
 	# the data will be copied from another node
@@ -42,7 +40,7 @@ fi
 		if [ ! -z "$MYSQL_ROOT_PASSWORD_FILE" -a -z "$MYSQL_ROOT_PASSWORD" ]; then
 		  MYSQL_ROOT_PASSWORD=$(cat $MYSQL_ROOT_PASSWORD_FILE)
 		fi
-		rm -rf "$DATADIR/*.db" && mkdir -p "$DATADIR"
+		mkdir -p "$DATADIR"
 
 		echo "Running --initialize-insecure on $DATADIR"
 		ls -lah $DATADIR
@@ -84,6 +82,7 @@ fi
 			GRANT REPLICATION CLIENT ON *.* TO monitor@'%' IDENTIFIED BY 'monitor';
 			GRANT PROCESS ON *.* TO monitor@localhost IDENTIFIED BY 'monitor';
 			DROP DATABASE IF EXISTS test ;
+			FLUSH PRIVILEGES ;
 		EOSQL
 		if [ ! -z "$MYSQL_ROOT_PASSWORD" ]; then
 			mysql+=( -p"${MYSQL_ROOT_PASSWORD}" )
@@ -101,6 +100,7 @@ fi
 				echo "GRANT ALL ON \`"$MYSQL_DATABASE"\`.* TO '"$MYSQL_USER"'@'%' ;" | "${mysql[@]}"
 			fi
 
+			echo 'FLUSH PRIVILEGES ;' | "${mysql[@]}"
 		fi
 
 		if [ ! -z "$MYSQL_ONETIME_PASSWORD" ]; then

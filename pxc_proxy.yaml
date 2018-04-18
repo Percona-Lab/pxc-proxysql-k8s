@@ -94,6 +94,7 @@ metadata:
   name: proxysql
   app: proxysql-app
 spec:
+  serviceName: "proxysql"
   replicas: 1
   selector:
   front: proxysql
