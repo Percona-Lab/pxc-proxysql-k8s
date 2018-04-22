@@ -28,6 +28,9 @@ spec:
       annotations:
         pod.alpha.kubernetes.io/initialized: "true"
     spec:
+      securityContext:
+        runAsUser: 1001
+        fsGroup: 1001    
       containers:
       - name: mysql
         image: perconalab/pxc-k8s:latest
