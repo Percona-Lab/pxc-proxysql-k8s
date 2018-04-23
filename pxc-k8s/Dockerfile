@@ -19,8 +19,9 @@ RUN yum install -y $REPO_URL \
   && yum clean all && mkdir -p /etc/mysql/conf.d/ && chown -R mysql /etc/mysql/ && mkdir -p /var/log/mysql \
   && chown -R 1001:1001 /var/lib/mysql /var/run/mysqld /etc/mysql/conf.d/ /var/log/mysql && chmod -R g+w /etc/mysql/conf.d/
 
-ADD node.cnf /etc/mysql/conf.d/node.cnf
-RUN echo '!include /etc/mysql/conf.d/node.cnf' > /etc/my.cnf
+ADD node.cnf /etc/mysql/node.cnf
+RUN echo '!include /etc/mysql/node.cnf' > /etc/my.cnf
+RUN echo '!includedir /etc/mysql/conf.d/' >> /etc/my.cnf
 
 COPY entrypoint.sh /entrypoint.sh
 COPY dockerdir /

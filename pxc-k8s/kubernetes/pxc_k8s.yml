@@ -3,31 +3,35 @@ kind: Service
 metadata:
   annotations:
     service.alpha.kubernetes.io/tolerate-unready-endpoints: "true"
-  name: pxc
+  name: percona-xtradb-cluster
   labels:
-    app: mysql
+    app: percona-xtradb-cluster
 spec:
   ports:
   - port: 3306
-    name: mysql
+    name: mysql-port
   clusterIP: None
   selector:
-    app: mysql
+    app: percona-xtradb-cluster
 ---
-apiVersion: apps/v1beta1
+apiVersion: apps/v1
 kind: StatefulSet
 metadata:
-  name: mysql
+  name: cluster1
 spec:
-  serviceName: "pxc"
+  selector:
+    matchLabels:
+      app: percona-xtradb-cluster
+  serviceName: "percona-xtradb-cluster"
   replicas: 3
   template:
     metadata:
       labels:
-        app: mysql
-      annotations:
-        pod.alpha.kubernetes.io/initialized: "true"
+        app: percona-xtradb-cluster
     spec:
+      securityContext:
+        runAsUser: 1001
+        fsGroup: 1001
       containers:
       - name: mysql
         image: perconalab/pxc-k8s:latest
@@ -47,12 +51,21 @@ spec:
             - /usr/bin/clustercheck.sh
           initialDelaySeconds: 15
           timeoutSeconds: 15
-          periodSeconds: 15
+          periodSeconds: 30
           failureThreshold: 5
+        livenessProbe:
+          exec:
+            command:
+            - /usr/bin/clustercheck.sh
+          initialDelaySeconds: 300
+          timeoutSeconds: 5
+          periodSeconds: 10
         volumeMounts:
         - name: datadir
           mountPath: /var/lib/mysql
           subPath: data
+        - name: config-volume
+          mountPath: /etc/mysql/conf.d/
         env:
           - name: MYSQL_ROOT_PASSWORD
             value: "Theistareyk"
@@ -63,6 +76,11 @@ spec:
               fieldRef:
                 apiVersion: v1
                 fieldPath: metadata.namespace
+      volumes:
+      - name: config-volume
+        configMap:
+          name: mysql
+          optional: true
   volumeClaimTemplates:
   - metadata:
       name: datadir
@@ -70,4 +88,4 @@ spec:
       accessModes: [ "ReadWriteOnce" ]
       resources:
         requests:
-          storage: 2Gi
+          storage: 1Gi

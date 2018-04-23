@@ -19,7 +19,7 @@ fi
 MYSQL_USERNAME="${1-monitor}" 
 MYSQL_PASSWORD="${2-monitor}" 
 AVAILABLE_WHEN_DONOR=${3:-1}
-ERR_FILE="${4:-/var/lib/mysql/clustercheck.log}" 
+ERR_FILE="${4:-/var/log/mysql/clustercheck.log}" 
 AVAILABLE_WHEN_READONLY=${5:-1}
 DEFAULTS_EXTRA_FILE=${6:-/etc/mysql/my.cnf}
 
@@ -32,9 +32,6 @@ TIMEOUT=10
 EXTRA_ARGS=""
 if [[ -n "$MYSQL_USERNAME" ]]; then
     EXTRA_ARGS="$EXTRA_ARGS --user=${MYSQL_USERNAME}"
-fi
-if [[ -n "$MYSQL_PASSWORD" ]]; then
-    EXTRA_ARGS="$EXTRA_ARGS --password=${MYSQL_PASSWORD}"
 fi
 if [[ -r $DEFAULTS_EXTRA_FILE ]];then 
     MYSQL_CMDLINE="mysql --defaults-extra-file=$DEFAULTS_EXTRA_FILE -nNE --connect-timeout=$TIMEOUT \
@@ -49,7 +46,7 @@ hostname=$(hostname)
 #
 # Perform the query to check the wsrep_local_state
 #
-WSREP_STATUS=($($MYSQL_CMDLINE -e "SHOW GLOBAL STATUS LIKE 'wsrep_%';"  \
+WSREP_STATUS=($(MYSQL_PWD=${MYSQL_PASSWORD} $MYSQL_CMDLINE -e "SHOW GLOBAL STATUS LIKE 'wsrep_%';"  \
     2>${ERR_FILE} | grep -A 1 -E 'wsrep_local_state$|wsrep_cluster_status$' \
     | sed -n -e '2p'  -e '5p' | tr '\n' ' '))
  
