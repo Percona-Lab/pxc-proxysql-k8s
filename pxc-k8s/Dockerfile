@@ -17,7 +17,9 @@ ARG REPO_URL=http://www.percona.com/downloads/percona-release/redhat/0.1-4/perco
 RUN yum install -y $REPO_URL \
   && yum install -y Percona-XtraDB-Cluster-57 curl vim \
   && yum clean all && mkdir -p /etc/mysql/conf.d/ && chown -R mysql /etc/mysql/ && mkdir -p /var/log/mysql \
-  && chown -R 1001:1001 /var/lib/mysql /var/run/mysqld /etc/mysql/conf.d/ /var/log/mysql && chmod -R g+w /etc/mysql/conf.d/
+  && chown -R mysql /var/lib/mysql /var/run/mysqld /etc/mysql/conf.d/ /var/log/mysql \
+  && chgrp -R 0 /var/lib/mysql /var/run/mysqld /etc/mysql/conf.d/ /var/log/mysql \
+  && chmod -R g=u /var/lib/mysql /var/run/mysqld /etc/mysql/conf.d/ /var/log/mysql 
 
 ADD node.cnf /etc/mysql/node.cnf
 RUN echo '!include /etc/mysql/node.cnf' > /etc/my.cnf
@@ -30,7 +32,7 @@ EXPOSE 3306 4567 4568
 
 ENTRYPOINT ["/entrypoint.sh"]
 
-USER 1001:1001
+USER 1001
 
 CMD [""]
 
